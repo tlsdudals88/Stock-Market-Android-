@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>     
+        <title>Homework8</title>
+        
+        <!-- Bootstrap library -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+        
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+        <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+        <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
+        
+        <!-- Highstock library -->
+        <script src="https://code.highcharts.com/stock/highstock.js"></script>
+        <script src="https://code.highcharts.com/stock/modules/exporting.js"></script>
+
+    </head>
+
+    <body>
+
+        <script language="javascript">
+            
+            function init(data) {
+                param = data;
+            }
+            
+            
+            $(document).ready(function() {
+                console.log(document.URL);
+                
+                var url = document.URL;
+                var split_url = url.split('symbol=')[1];
+                
+                console.log(split_url);
+
+                    $.ajax({ // 2. chart
+                            url: "http://sonorous-treat-124311.appspot.com/?", 
+                            data: {
+                                chart:split_url,      
+                            },
+                            type: 'GET',
+                            success: function(response, status, xhr) {
+                                // console.log(response);
+                                var data = JSON.parse(response);
+                                console.log(data);
+
+                                if(!data || data.Message) {
+                                    return 0;
+                                }
+
+                                if(data.Positions == null || data.Dates == null) {
+                                    alert("There is no chart data");
+                                    return 0;
+                                }
+                                parsing_chart(data);
+                            },
+                            error: function(xhr, status, error) {
+                                alert("chart parsing error");
+                                return 0;
+                            }
+                        }); // finish chart 
+                
+            }); // finish JQuery
+
+
+            function parsing_chart(data) { // 2. parsing chart
+                
+                var symbol1 = data.Elements[0].Symbol;
+                
+                function fixDate(dateIn) {
+                    var dat = new Date(dateIn);
+                    return Date.UTC(dat.getFullYear(), dat.getMonth(), dat.getDate());
+                };
+
+                function getOHLC(json) {
+                    var dates = json.Dates || [];
+                    var elements = json.Elements || [];
+                    var chartSeries = [];
+
+                    if (elements[0]){
+
+                        for (var i = 0, datLen = dates.length; i < datLen; i++) {
+                            var dat = fixDate( dates[i] );
+                            var pointData = [
+                                dat,
+                                elements[0].DataSeries['open'].values[i],
+                                elements[0].DataSeries['high'].values[i],
+                                elements[0].DataSeries['low'].values[i],
+                                elements[0].DataSeries['close'].values[i]
+                            ];
+                            chartSeries.push( pointData );
+                        };
+                    }
+                    return chartSeries;
+                };
+
+                function getVolume(json) {
+                    var dates = json.Dates || [];
+                    var elements = json.Elements || [];
+                    var chartSeries = [];
+
+                    if (elements[1]){
+
+                        for (var i = 0, datLen = dates.length; i < datLen; i++) {
+                            var dat = fixDate( dates[i] );
+                            var pointData = [
+                                dat,
+                                elements[1].DataSeries['volume'].values[i]
+                            ];
+                            chartSeries.push( pointData );
+                        };
+                    }
+                    return chartSeries;
+                };
+                        
+                var ohlc = getOHLC(data);      
+                var volume = getVolume(data);
+
+                // set the allowed units for data grouping
+                var groupingUnits = [[
+                    'week',                         // unit name
+                    [1]                             // allowed multiples
+                ], [
+                    'month',
+                    [1, 2, 3, 4, 6]
+                ]];
+
+                // create the chart
+                $('#container_chart').highcharts('StockChart', {
+
+                    exporting: {
+                            enabled: false
+                    },  
+                    rangeSelector: {
+                         buttons: [{
+                            type: 'week',
+                            count: 1,
+                            text: '1w'
+                        }, {
+                            type: 'month',
+                            count: 1,
+                            text: '1m'
+                        }, {
+                            type: 'month',
+                            count: 3,
+                            text: '3m'
+                        }, {
+                            type: 'month',
+                            count: 6,
+                            text: '6m'
+                        }, {
+                            type: 'ytd',
+                            text: 'YTD'
+                        }, {
+                            type: 'year',
+                            count: 1,
+                            text: '1y'
+                        }, {
+                            type: 'all',
+                            text: 'All'
+                        }],
+                        selected: 0
+                        
+                        ,inputEnabled: false
+                    },
+                    
+                    title: {
+                        text: symbol1 + ' Stock Value'
+                    },
+
+                    yAxis: [{
+                        title: {
+                            // text: 'OHLC'
+                            text: 'Stock Value'
+                        },
+                        height: 200,
+                        lineWidth: 2
+                    }, {
+                        title: {
+                            // text: 'Volume'
+                        },
+                        top: 300,
+                        height: 100,
+                        offset: 0,
+                        lineWidth: 2
+                    }],
+                    
+                    tooltip: {
+                        valueDecimals: 2,
+                        valuePrefix: '$'
+                    },
+                         
+                    series: [{
+                        // type: 'candlestick',
+                        type: 'area',
+                        name: symbol1,
+                        data: ohlc,
+                        dataGrouping: {
+                            units: groupingUnits
+                        },
+                        fillColor : {
+                            linearGradient : {
+                                x1: 0,
+                                y1: 0,
+                                x2: 0,
+                                y2: 1
+                            },
+                            stops : [
+                                [0, Highcharts.getOptions().colors[0]],
+                                [1, Highcharts.Color(Highcharts.getOptions().colors[0]).setOpacity(0).get('rgba')]
+                            ]
+                        }     
+                    }],                                   
+
+                    credits: {
+                        enabled:false
+                    }                
+                });
+            }
+        </script>  
+        <div id="container_chart" style="margin:30px 10px 10px 10px"></div>
+ 
+    <noscript>   
+    </body>
+</html>
+

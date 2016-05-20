@@ -1,0 +1,14 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:yourapp="http://schemas.android.com/apk/res-auto">
+
+    <item android:id="@+id/star"
+        android:icon="@drawable/btn_rating_star_off_normal"
+        android:title="star"
+        yourapp:showAsAction="always"/>
+
+    <item android:id="@+id/facebook"
+        android:icon="@drawable/facebook_icon"
+        android:title="facebook"
+        yourapp:showAsAction="always"/>
+
+</menu>
